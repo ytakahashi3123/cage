@@ -1,0 +1,41 @@
+# Configuration file for Cage code
+
+# Input STL data
+filename_input_stl: goat-3d-model/Goat.stl
+
+# Output data
+directory_output: result
+# --Series data
+flag_filename_vtk_series: True
+filename_vtk_series: goat_rotated.vtu
+step_digit: 4
+variable_name_series: Brightness
+variable_scale_series: 1.0
+# --Average data over series
+flag_filename_vtk_ave: True
+filename_vtk_ave: goat_rotated_ave.vtu
+variable_name_ave: Brightness
+variable_scale_ave: 1.0
+
+# Light source (x,y,z)
+light_direction: 
+  - 0
+  - 0
+  - -1
+
+# STL rotation (x,y,z)
+# --Angular velocity
+angular_velocity_unit: degree
+angular_velocity:
+  - 10
+  - 5
+  - 5
+# -- Rotation
+rotation_axis_order: ZYX
+rotation_bydegrees: True
+
+# Time marching
+time_step: 1.0
+
+# Shadow
+flag_shadow: True
