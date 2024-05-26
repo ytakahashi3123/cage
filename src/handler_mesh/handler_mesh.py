@@ -3,12 +3,9 @@
 import numpy as np
 from stl import mesh
 from scipy.spatial.transform import Rotation as R
-import vtk
-from vtk.util import numpy_support
-from orbital.orbital import orbital
 
 
-class handler_mesh(orbital):
+class Handler_mesh():
 
   def __init__(self):
     print("Constructing class: Mesh")
@@ -32,7 +29,21 @@ class handler_mesh(orbital):
     return  points, volume, cog, inerti
 
 
-  def get_rotation_matrix(self, angle, order='ZYX', bydegrees=True):
+  def rotate_stl(self, rotation_data, rotation_center, rotation_angle):
+    rotation_matrix = self.get_rotation_matrix(rotation_angle, order='XYZ', bydegrees=True)
+    # Translate to rotation center
+    rotation_data.translate(rotation_center)
+    # Rotation
+    # --Apply the rotation to each vertex in the mesh
+    rotation_data.vectors = np.dot(rotation_data.vectors, rotation_matrix.T)
+    # --Apply the rotation to each normal vectors in the mesh
+    rotation_data.normals = np.dot(rotation_data.normals, rotation_matrix.T)
+    # Translate from rotation center
+    rotation_data.translate(-rotation_center)
+    return rotation_data
+
+
+  def get_rotation_matrix(self, angle, order='XYZ', bydegrees=True):
     r = R.from_euler(order, angle, degrees=bydegrees)
     rotation_matrix = r.as_matrix()
     return rotation_matrix 
@@ -46,6 +57,7 @@ class handler_mesh(orbital):
     print('Rotation period [s]:', rotation_period )    
     return rotation_period
 
+
   def get_index_stldata(self, stl_data, target_points):
     # 頂点座標をフラットなリストに変換
     points = stl_data.vectors.reshape(-1, 3)  # 形状を (N*3, 3) に変換
@@ -58,51 +70,4 @@ class handler_mesh(orbital):
     closest_vertex_index = closest_index % 3     # 三角形内の頂点のインデックス
     return [closest_triangle_index, closest_vertex_index]
 
-  def output_vtk(self, stl_mesh, filename_output, variable_name, variable_data):
-
-    print('Writing brightness on STL to:',filename_output)
-
-    # 三角形要素の数を取得
-    num_triangles = len(stl_mesh.vectors)
-
-    # Input parameter
-    x = variable_data
-
-    # VTKのポリゴンデータを作成
-    points = vtk.vtkPoints()
-    cells = vtk.vtkCellArray()
-    unstructured_grid = vtk.vtkUnstructuredGrid()
-
-    # 頂点座標を追加
-    # STLメッシュから頂点座標を抽出し、ポイントに追加
-    for vector in stl_mesh.vectors:
-      for point in vector:
-        points.InsertNextPoint(point)
-
-    # 三角形セルを追加
-    for i in range(num_triangles):
-      triangle = vtk.vtkTriangle()
-      for j in range(3):
-        triangle.GetPointIds().SetId(j, 3 * i + j)
-      cells.InsertNextCell(triangle)
-
-    # ポリゴンデータにポイントとセルをセット
-    unstructured_grid.SetPoints(points)
-    unstructured_grid.SetCells(vtk.VTK_TRIANGLE, cells)
-
-    # NumPy配列をVTK配列に変換
-    x_vtk_array = numpy_support.numpy_to_vtk(x, deep=True)
-    x_vtk_array.SetName(variable_name)
-
-    # ポリゴンデータに要素データを追加
-    #poly_data.GetCellData().AddArray(x_vtk_array)
-    unstructured_grid.GetCellData().AddArray(x_vtk_array)
-
-    # VTK/VTUファイルとして保存
-    writer = vtk.vtkXMLUnstructuredGridWriter()
-    writer.SetFileName(filename_output)
-    writer.SetInputData(unstructured_grid)
-    writer.Write()
-
-    return
-
+  

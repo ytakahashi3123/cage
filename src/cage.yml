@@ -3,20 +3,6 @@
 # Input STL data
 filename_input_stl: goat-3d-model/Goat.stl
 
-# Output data
-directory_output: result
-# --Series data
-flag_filename_vtk_series: True
-filename_vtk_series: goat_rotated.vtu
-step_digit: 4
-variable_name_series: Brightness
-variable_scale_series: 1.0
-# --Average data over series
-flag_filename_vtk_ave: True
-filename_vtk_ave: goat_rotated_ave.vtu
-variable_name_ave: Brightness
-variable_scale_ave: 1.0
-
 # Light source (x,y,z)
 light_direction: 
   - 0
@@ -31,11 +17,59 @@ angular_velocity:
   - 5
   - 5
 # -- Rotation
-rotation_axis_order: ZYX
-rotation_bydegrees: True
+rotation_center:
+  - 0
+  - 0
+  - 0
+angle_initial: # degree
+  - 0
+  - 0
+  - 0
+#rotation_axis_order: ZYX
+#rotation_bydegrees: True
 
 # Time marching
 time_step: 1.0
 
-# Shadow
-flag_shadow: True
+# Shade computing
+flag_shade: True
+
+# Shadow computing
+flag_shadow: False
+
+# Output data
+directory_output: result
+# --Series data
+flag_filename_vtk_series: True
+filename_vtk_series: goat_rotated.vtu
+step_digit: 4
+variable_mesh_rotate_series: False
+variable_name_series: Brightness
+variable_scale_series: 1.0
+# --Average data over series
+flag_filename_vtk_ave: True
+filename_vtk_ave: goat_rotated_ave.vtu
+variable_name_ave: Brightness
+variable_scale_ave: 1.0
+
+# Probe
+probe:
+  - name: coord1
+    coordinate:
+    - -0.7
+    - -1.34
+    - 4.9
+  - name: coord2
+    coordinate:
+    - 0.302
+    - -0.9144
+    - 4.227
+  - name: coord3
+    coordinate:
+    - 0.5243
+    - 0.386
+    - 5.168
+filename_probe: probe_brightness.dat
+filename_probe_ave: probe_brightness_ave.dat
+
+display_verbose: True

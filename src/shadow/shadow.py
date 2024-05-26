@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import vtk
 
 
 class Shadow:
@@ -109,3 +110,72 @@ class Shadow:
     tmax_final = np.min(np.maximum(tmin, tmax))
     return tmax_final >= max(tmin_final, 0.0)
 
+
+  def output_bvh_structure(self):
+
+    def add_bvh_nodes_to_vtk(node, vtk_points, vtk_cells):
+    # Function to add BVH nodes to a VTK polydata
+      if node is not None:
+        min_corner, max_corner = node.bounding_box
+        
+        # Add the bounding box vertices to vtkPoints
+        bbox_points = [
+            [min_corner[0], min_corner[1], min_corner[2]],
+            [max_corner[0], min_corner[1], min_corner[2]],
+            [max_corner[0], max_corner[1], min_corner[2]],
+            [min_corner[0], max_corner[1], min_corner[2]],
+            [min_corner[0], min_corner[1], max_corner[2]],
+            [max_corner[0], min_corner[1], max_corner[2]],
+            [max_corner[0], max_corner[1], max_corner[2]],
+            [min_corner[0], max_corner[1], max_corner[2]]
+        ]
+        bbox_point_ids = []
+        for point in bbox_points:
+            pid = vtk_points.InsertNextPoint(point)
+            bbox_point_ids.append(pid)
+        
+        # Add the bounding box edges to vtkCells
+        bbox_edges = [
+            [0, 1], [1, 2], [2, 3], [3, 0], # bottom face
+            [4, 5], [5, 6], [6, 7], [7, 4], # top face
+            [0, 4], [1, 5], [2, 6], [3, 7]  # vertical edges
+        ]
+        for edge in bbox_edges:
+            line = vtk.vtkLine()
+            line.GetPointIds().SetId(0, bbox_point_ids[edge[0]])
+            line.GetPointIds().SetId(1, bbox_point_ids[edge[1]])
+            vtk_cells.InsertNextCell(line)
+        
+        # Recurse for child nodes
+        add_bvh_nodes_to_vtk(node.left, vtk_points, vtk_cells)
+        add_bvh_nodes_to_vtk(node.right, vtk_points, vtk_cells)
+
+    # Create VTK structures for storing points and cells
+    vtk_points = vtk.vtkPoints()
+    vtk_cells = vtk.vtkCellArray()
+
+    # Add BVH nodes to the VTK structures
+    add_bvh_nodes_to_vtk(bvh_root, vtk_points, vtk_cells)
+
+    # Create a polydata object
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(vtk_points)
+    polydata.SetLines(vtk_cells)
+
+    # Write the polydata to a VTK file
+    writer = vtk.vtkPolyDataWriter()
+    writer.SetFileName(filename_output )
+    writer.SetInputData(polydata)
+    writer.Write()
+
+    print("BVH structure written to",filename_output)
+
+    # Function to print the BVH structure for debugging
+    #def print_bvh(node, depth=0):
+    #    if node is not None:
+    #        print("  " * depth + f"Node depth {depth}: Bounding box {node.bounding_box}, Triangles: {len(node.triangles) if node.triangles is not None else 'N/A'}, Indices: {node.triangle_indices if node.triangle_indices is not None else 'N/A'}")
+    #        print_bvh(node.left, depth + 1)
+    #        print_bvh(node.right, depth + 1)
+    #
+    # Print the BVH
+    #print_bvh(bvh_root)

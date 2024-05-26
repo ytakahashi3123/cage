@@ -8,27 +8,6 @@ class Shade():
   def __init__(self):
     print("Shade class initialized")
 
-  def calculate_incidence_angle_iter(self, stl_mesh_normal, light_direction):
-
-    def normalize(v):
-      norm = np.linalg.norm(v)
-      if norm == 0: 
-        return v
-      return v / norm
-
-    # Normalize the vectors
-    mesh_normal = normalize(stl_mesh_normal)
-    light_normal = normalize(light_direction)
-    
-    # Calculate the dot product
-    dot_product = np.dot(mesh_normal, light_normal)
-    
-    # Calculate the angle in radians and then convert to degrees
-    angle_rad = np.arccos(dot_product)
-    angle_deg = np.degrees(angle_rad)
-    
-    return angle_deg
-
 
   def calculate_incidence_angles(self, normals, light_direction):
     # Normalize the normals and light direction
@@ -43,6 +22,16 @@ class Shade():
 
     # Calculate the angle in radians and then convert to degrees
     angles_rad = np.arccos(dot_products)
-    angles_deg = np.degrees(angles_rad)
 
-    return angles_deg
+    # Incidence angle
+    incidence_angle = np.pi - angles_rad
+
+    #angles_deg = np.degrees(angles_rad)
+
+    return incidence_angle
+
+
+  def calculate_brightness(self, incidence_angle):
+    brightness = np.cos(incidence_angle)
+    brightness[brightness < 0.0] = 0.0
+    return brightness

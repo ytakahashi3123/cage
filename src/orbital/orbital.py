@@ -9,7 +9,7 @@ import time as time
 from functools import wraps
 
 
-class orbital():
+class Orbital():
 
   file_control_default = "cage.yml"
 
