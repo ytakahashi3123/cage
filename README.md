@@ -13,11 +13,11 @@ Script to compute shade and shadow on an STL file based on ray tracing method
 ## Run `Cage`
 
 ```console
-python3 src/borealis.py
+python3 src/cage.py
 ```
 
 Tutorial case: `testcase/work*`
-The tutorials recommended are `testcase/work_goat`
+The tutorials recommended are `testcase/work_shiroyagi`
 
 
 # Contact:
