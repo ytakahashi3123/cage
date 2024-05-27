@@ -12,7 +12,7 @@ version = "1.0.0"
 
 import numpy as np
 from orbital.orbital import Orbital
-from handler_mesh.handler_mesh import Handler_mesh
+from mesh_stl.mesh_stl import Mesh_stl
 from shade.shade import Shade
 from shadow.shadow import Shadow
 from raytracing import raytracing
@@ -22,7 +22,7 @@ def main():
 
   # Call Classes
   orbital = Orbital()
-  handler_mesh = Handler_mesh()
+  mesh_stl = Mesh_stl()
   shade = Shade()
   shadow = Shadow()
 
@@ -34,10 +34,10 @@ def main():
   orbital.make_directory_rm(config['directory_output'])
 
   # Load the STL file
-  stl_data = handler_mesh.load_stl(config['filename_input_stl'])
+  stl_data = mesh_stl.load_stl(config['filename_input_stl'])
 
   # Ray tracing for rotated STL to calculate brightness on STL surface
-  raytracing.run_raytracing(config,stl_data,orbital,handler_mesh,shade,shadow)
+  raytracing.run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow)
 
   return
 

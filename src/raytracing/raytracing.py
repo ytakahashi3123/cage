@@ -5,11 +5,11 @@ import time
 import vtk
 from vtk.util import numpy_support
 
-def find_probe_index(probe,stl_data,handler_mesh):
+def find_probe_index(probe,stl_data,mesh_stl):
   # Find index for probe
   probe_index_list = []
   for n in range(0,len(probe)):
-    probe_index = handler_mesh.get_index_stldata(stl_data, probe[n]['coordinate'])
+    probe_index = mesh_stl.get_index_stldata(stl_data, probe[n]['coordinate'])
     probe_index_list.append(probe_index)
   return probe_index_list
 
@@ -55,19 +55,19 @@ def write_probe_data(config, probe, probe_data):
   return
 
 
-def rotate_stl_test(rotated_mesh,rotation_center,angle):
-  test_stl = handler_mesh.rotate_stl(rotated_mesh, rotation_center, angle)
+def rotate_stl_test(mesh_stl,rotated_mesh,rotation_center,angle):
+  test_stl = mesh_stl.rotate_stl(rotated_mesh, rotation_center, angle)
   test_stl.save('rotation.stl')
   return
 
 
-def run_raytracing(config,stl_data,orbital,handler_mesh,shade,shadow):
+def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     
   # Find index for probe
   probe = config['probe']
   num_probes = len(probe)
   if probe is not None:
-    probe_index_list = find_probe_index(probe,stl_data,handler_mesh)
+    probe_index_list = find_probe_index(probe,stl_data,mesh_stl)
 
   # Define light direction
   light_direction = np.array( config['light_direction'] )
@@ -88,7 +88,7 @@ def run_raytracing(config,stl_data,orbital,handler_mesh,shade,shadow):
 
   # Number of steps
   if flag_rotation :
-    rotation_period = handler_mesh.get_rotation_period(angular_velocity*convert_unit)
+    rotation_period = mesh_stl.get_rotation_period(angular_velocity*convert_unit)
     num_steps = (rotation_period/time_step).astype(int)
   else :
     num_steps = 1
@@ -101,10 +101,10 @@ def run_raytracing(config,stl_data,orbital,handler_mesh,shade,shadow):
   rotation_per_step = angular_velocity*time_step
 
   # Create a copy of the mesh to rotate
-  rotated_mesh = handler_mesh.copy_mesh(stl_data)
+  rotated_mesh = mesh_stl.copy_mesh(stl_data)
 
   # Set rotation matrix
-  #rotation_matrix = handler_mesh.get_rotation_matrix(rotation_per_step, order='ZYX', bydegrees=True)
+  #rotation_matrix = mesh_stl.get_rotation_matrix(rotation_per_step, order='ZYX', bydegrees=True)
 
   # Light direction normalized (emitted from vertex) for shadow calculation
   shadow_ray = -light_direction / np.linalg.norm(light_direction)
@@ -126,7 +126,7 @@ def run_raytracing(config,stl_data,orbital,handler_mesh,shade,shadow):
     #rotated_mesh.normals = np.dot(rotated_mesh.normals, rotation_matrix.T)
 
     # Rotation
-    rotated_mesh = handler_mesh.rotate_stl(rotated_mesh, rotation_center, rotation_per_step)
+    rotated_mesh = mesh_stl.rotate_stl(rotated_mesh, rotation_center, rotation_per_step)
 
     if config['flag_shade']:
       # Ray tracing to evaluate incidence angle (rad)
@@ -196,12 +196,12 @@ def run_raytracing(config,stl_data,orbital,handler_mesh,shade,shadow):
   return 
 
 
-def output_vtk(filename_output, stl_mesh, variable_name, variable_data):
+def output_vtk(filename_output, stl_data, variable_name, variable_data):
 
   print('Writing brightness on STL to:',filename_output)
 
   # 三角形要素の数を取得
-  num_triangles = len(stl_mesh.vectors)
+  num_triangles = len(stl_data.vectors)
 
   # Input parameter
   x = variable_data
@@ -213,7 +213,7 @@ def output_vtk(filename_output, stl_mesh, variable_name, variable_data):
 
   # 頂点座標を追加
   # STLメッシュから頂点座標を抽出し、ポイントに追加
-  for vector in stl_mesh.vectors:
+  for vector in stl_data.vectors:
     for point in vector:
       points.InsertNextPoint(point)
 

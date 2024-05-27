@@ -5,10 +5,10 @@ from stl import mesh
 from scipy.spatial.transform import Rotation as R
 
 
-class Handler_mesh():
+class Mesh_stl():
 
   def __init__(self):
-    print("Constructing class: Mesh")
+    print("Mesh_stl class initialized")
     return
 
 
