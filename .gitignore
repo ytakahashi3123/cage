@@ -1,2 +1,3 @@
-testcase
 pilot/
+hidden*
+*.pvsm

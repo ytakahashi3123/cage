@@ -23,7 +23,7 @@ def write_probe_data(config, probe, probe_data):
   # Write series data
   filename_tmp = config['directory_output'] + '/' + config['filename_probe']
   file_output = open( filename_tmp , 'w')
-  header_tmp = "Variables = Time,"
+  header_tmp = "Variables = Time, "
   for n in range(0, num_probes):
     header_tmp = header_tmp + probe[n]['name'] + ', '
   header_tmp = header_tmp.rstrip(',') + '\n'
@@ -40,12 +40,13 @@ def write_probe_data(config, probe, probe_data):
   # Write average data
   filename_tmp = config['directory_output'] + '/' + config['filename_probe_ave']
   file_output = open( filename_tmp , 'w')
-  header_tmp = "Variables = "
+  header_tmp = "Variables = Time, "
   for n in range(0, num_probes):
     header_tmp = header_tmp + probe[n]['name'] + ', '
   header_tmp = header_tmp.rstrip(',') + '\n'
   file_output.write( header_tmp )
   text_tmp = ''
+  text_tmp = text_tmp + str( float(0) ) + ', '
   for m in range(0, num_probes):
     text_tmp = text_tmp + str( probe_data[-1,m] ) + ', '
   text_tmp = text_tmp.rstrip(', ')  + '\n'
