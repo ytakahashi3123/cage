@@ -56,11 +56,6 @@ def write_probe_data(config, probe, probe_data):
   return
 
 
-def rotate_stl_test(mesh_stl,rotated_mesh,rotation_center,angle):
-  test_stl = mesh_stl.rotate_stl(rotated_mesh, rotation_center, angle)
-  test_stl.save('rotation.stl')
-  return
-
 
 def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     
@@ -97,6 +92,9 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
   # Rotation center
   rotation_center = np.array(config['rotation_center'])
   angle_initial = np.array(config['angle_initial'])
+
+  # Initial rotation
+  stl_data = mesh_stl.rotate_stl(stl_data, rotation_center, angle_initial)
 
   # Calculate the rotation per step
   rotation_per_step = angular_velocity*time_step

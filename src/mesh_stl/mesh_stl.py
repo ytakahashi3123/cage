@@ -30,10 +30,10 @@ class Mesh_stl():
 
 
   def rotate_stl(self, rotation_data, rotation_center, rotation_angle):
-    rotation_matrix = self.get_rotation_matrix(rotation_angle, order='XYZ', bydegrees=True)
     # Translate to rotation center
     rotation_data.translate(rotation_center)
     # Rotation
+    rotation_matrix = self.get_rotation_matrix(rotation_angle, order='xyz', bydegrees=True)
     # --Apply the rotation to each vertex in the mesh
     rotation_data.vectors = np.dot(rotation_data.vectors, rotation_matrix.T)
     # --Apply the rotation to each normal vectors in the mesh
