@@ -10,26 +10,24 @@ light_direction:
   - 3
 
 # STL rotation (x,y,z)
-# --Angular velocity
-angular_velocity_unit: degree
+# Angular velocity around rotation axis, degree/s
 angular_velocity:
-  - 0
   - 10
-  - 0
-# -- Rotation
+  - 5
+  - 5
 rotation_center:
   - 0
   - 0
   - 0
-angle_initial: # degree
+rotation_axis:
   - 0
-  - 0
+  - 1
   - 0
 #rotation_axis_order: xyz
 #rotation_bydegrees: True
 
 # Time marching
-time_step: 1.0
+number_step: 36
 
 # Shade computing
 flag_shade: True

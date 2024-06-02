@@ -5,57 +5,6 @@ import time
 import vtk
 from vtk.util import numpy_support
 
-def find_probe_index(probe,stl_data,mesh_stl):
-  # Find index for probe
-  probe_index_list = []
-  for n in range(0,len(probe)):
-    probe_index = mesh_stl.get_index_stldata(stl_data, probe[n]['coordinate'])
-    probe_index_list.append(probe_index)
-  return probe_index_list
-
-
-def write_probe_data(config, probe, probe_data):
-
-  num_probes = len(probe)
-  time_step = config['time_step']
-  num_steps = len( probe_data )
-
-  # Write series data
-  filename_tmp = config['directory_output'] + '/' + config['filename_probe']
-  file_output = open( filename_tmp , 'w')
-  header_tmp = "Variables = Time, "
-  for n in range(0, num_probes):
-    header_tmp = header_tmp + probe[n]['name'] + ', '
-  header_tmp = header_tmp.rstrip(',') + '\n'
-  file_output.write( header_tmp )
-  text_tmp = ''
-  for n in range(0, num_steps):
-    text_tmp = text_tmp + str( float(n)*time_step ) + ', '
-    for m in range(0, num_probes):
-      text_tmp = text_tmp  + str( probe_data[n,m] ) + ', '
-    text_tmp = text_tmp.rstrip(', ')  + '\n'
-  file_output.write( text_tmp )
-  file_output.close()
-  
-  # Write average data
-  filename_tmp = config['directory_output'] + '/' + config['filename_probe_ave']
-  file_output = open( filename_tmp , 'w')
-  header_tmp = "Variables = Time, "
-  for n in range(0, num_probes):
-    header_tmp = header_tmp + probe[n]['name'] + ', '
-  header_tmp = header_tmp.rstrip(',') + '\n'
-  file_output.write( header_tmp )
-  text_tmp = ''
-  text_tmp = text_tmp + str( float(0) ) + ', '
-  for m in range(0, num_probes):
-    text_tmp = text_tmp + str( probe_data[-1,m] ) + ', '
-  text_tmp = text_tmp.rstrip(', ')  + '\n'
-  file_output.write( text_tmp )
-  file_output.close()
-
-  return
-
-
 
 def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     
@@ -70,40 +19,50 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
 
   # Define rotation angular (e.g., [1, 1, 1] degrees for x, y, z axes)
   angular_velocity = np.array( config['angular_velocity'] )
-  if config['angular_velocity_unit'] == 'degree':
-    convert_unit = np.pi/180
-  else:
-    convert_unit = 1.0
   if np.all(angular_velocity == 0): # All components of angular velocity are zero
     flag_rotation = False    # Non rotation case
   else:
     flag_rotation = True     # Rotation case
 
-  # Time step [s]
-  time_step = config['time_step']
+  # Define rotation center
+  rotation_center = np.array(config['rotation_center'])
+
+  # Define rotation axis (normalized here)
+  rotation_axis = np.array( config['rotation_axis'] )
+  if np.all(rotation_axis == 0):
+    rotation_axis = np.array([1,0,0])
+    print('Axis of rotation is not defined. The X-around axis is automatically set.')
+  else:
+    rotation_axis = rotation_axis/np.linalg.norm(rotation_axis)
 
   # Number of steps
   if flag_rotation :
-    rotation_period = mesh_stl.get_rotation_period(angular_velocity*convert_unit)
-    num_steps = (rotation_period/time_step).astype(int)
-  else :
-    num_steps = 1
+    num_step = config['number_step']
+    if num_step <= 0:
+      print('Error, number of steps is less than zero.', num_step)
+      exit()
+    quaternion = mesh_stl.get_quaternion(rotation_axis, angular_velocity)
+    r = mesh_stl.get_rotation_quaternion(quaternion)
+    quaternion_combined = r.as_quat()
+    euler_angle, angle, axis = mesh_stl.quaternion_to_euler_and_axis(quaternion_combined)
+    rotation_period = mesh_stl.get_rotation_period( euler_angle )
+    time_step = rotation_period/float(num_step)
+  else:
+    num_step = 1
+    time_step = 1.0 
+  print('Number of steps:',num_step)
+  print('Time steps:',time_step)
 
-  # Rotation center
-  rotation_center = np.array(config['rotation_center'])
-  angle_initial = np.array(config['angle_initial'])
-
-  # Initial rotation
-  stl_data = mesh_stl.rotate_stl(stl_data, rotation_center, angle_initial)
+  # Test rotation
+  #stl_data = mesh_stl.rotate_stl_quaternion(stl_data, rotation_center, rotation_axis, angular_velocity)
+  #stl_data.save('test.stl')
 
   # Calculate the rotation per step
   rotation_per_step = angular_velocity*time_step
+  print('Rotation per step:', rotation_per_step)
 
   # Create a copy of the mesh to rotate
   rotated_mesh = mesh_stl.copy_mesh(stl_data)
-
-  # Set rotation matrix
-  #rotation_matrix = mesh_stl.get_rotation_matrix(rotation_per_step, order='ZYX', bydegrees=True)
 
   # Light direction normalized (emitted from vertex) for shadow calculation
   shadow_ray = -light_direction / np.linalg.norm(light_direction)
@@ -113,19 +72,13 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
   brightness_ave = np.zeros( num_normals )
 
   num_probes = num_probes + 1
-  probe_data = np.zeros(num_steps*num_probes).reshape(num_steps,num_probes)
+  probe_data = np.zeros(num_step*num_probes).reshape(num_step,num_probes)
 
-  for n in range(0,num_steps):
+  for n in range(0,num_step):
     start_time = time.time()
 
-    # Apply the rotation to each vertex in the mesh
-    #rotated_mesh.vectors = np.dot(rotated_mesh.vectors, rotation_matrix.T)
-
-    # Apply the rotation to each normal vectors in the mesh
-    #rotated_mesh.normals = np.dot(rotated_mesh.normals, rotation_matrix.T)
-
     # Rotation
-    rotated_mesh = mesh_stl.rotate_stl(rotated_mesh, rotation_center, rotation_per_step)
+    rotated_mesh = mesh_stl.rotate_stl_quaternion(rotated_mesh, rotation_center, rotation_axis, rotation_per_step)
 
     if config['flag_shade']:
       # Ray tracing to evaluate incidence angle (rad)
@@ -190,7 +143,7 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
       print('--Probe',m, probe[m]['name'],'Brightness',probe_data[-1,m])
 
     # Output probe data
-    write_probe_data(config, probe, probe_data)
+    write_probe_data(config, num_step, time_step, probe, probe_data)
 
   return 
 
@@ -243,3 +196,50 @@ def output_vtk(filename_output, stl_data, variable_name, variable_data):
 
   return
 
+
+def find_probe_index(probe,stl_data,mesh_stl):
+  # Find index for probe
+  probe_index_list = []
+  for n in range(0,len(probe)):
+    probe_index = mesh_stl.get_index_stldata(stl_data, probe[n]['coordinate'])
+    probe_index_list.append(probe_index)
+  return probe_index_list
+
+def write_probe_data(config, num_step, time_step, probe, probe_data):
+
+  num_probes = len(probe)
+
+  # Write series data
+  filename_tmp = config['directory_output'] + '/' + config['filename_probe']
+  file_output = open( filename_tmp , 'w')
+  header_tmp = "Variables = Time, "
+  for n in range(0, num_probes):
+    header_tmp = header_tmp + probe[n]['name'] + ', '
+  header_tmp = header_tmp.rstrip(',') + '\n'
+  file_output.write( header_tmp )
+  text_tmp = ''
+  for n in range(0, num_step):
+    text_tmp = text_tmp + str( float(n)*time_step ) + ', '
+    for m in range(0, num_probes):
+      text_tmp = text_tmp  + str( probe_data[n,m] ) + ', '
+    text_tmp = text_tmp.rstrip(', ')  + '\n'
+  file_output.write( text_tmp )
+  file_output.close()
+  
+  # Write average data
+  filename_tmp = config['directory_output'] + '/' + config['filename_probe_ave']
+  file_output = open( filename_tmp , 'w')
+  header_tmp = "Variables = Time, "
+  for n in range(0, num_probes):
+    header_tmp = header_tmp + probe[n]['name'] + ', '
+  header_tmp = header_tmp.rstrip(',') + '\n'
+  file_output.write( header_tmp )
+  text_tmp = ''
+  text_tmp = text_tmp + str( float(0) ) + ', '
+  for m in range(0, num_probes):
+    text_tmp = text_tmp + str( probe_data[-1,m] ) + ', '
+  text_tmp = text_tmp.rstrip(', ')  + '\n'
+  file_output.write( text_tmp )
+  file_output.close()
+
+  return
