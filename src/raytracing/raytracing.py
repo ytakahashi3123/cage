@@ -8,6 +8,8 @@ from vtk.util import numpy_support
 
 def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     
+  print('Ray tracing routine')
+  
   # Find index for probe
   probe = config['probe']
   num_probes = len(probe)
@@ -44,9 +46,12 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     quaternion = mesh_stl.get_quaternion(rotation_axis, angular_velocity)
     r = mesh_stl.get_rotation_quaternion(quaternion)
     quaternion_combined = r.as_quat()
-    euler_angle, angle, axis = mesh_stl.quaternion_to_euler_and_axis(quaternion_combined)
+    euler_angle, axis, angle = mesh_stl.quaternion_to_euler_and_axis(quaternion_combined)
     rotation_period = mesh_stl.get_rotation_period( euler_angle )
     time_step = rotation_period/float(num_step)
+    print('Euler angle, degree:', euler_angle)
+    print('Angle, degree:', angle)
+    print('Rotation axis:', axis)
   else:
     num_step = 1
     time_step = 1.0 

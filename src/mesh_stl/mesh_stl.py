@@ -70,13 +70,6 @@ class Mesh_stl():
     rot_y = R.from_quat(quaternion[1])
     rot_z = R.from_quat(quaternion[2])
     rotation = rot_x * rot_y * rot_z
-    # 結果のクォータニオンを取得するならば
-    #quaternion_combined = r.as_quat()
-    #print(quaternion_combined)
-    #euler_angles, axis, angle = slt.quaternion_to_euler_and_axis(quaternion_combined)
-    #print(f"オイラー角 (度): {np.degrees(euler_angles)}")
-    #print(f"回転軸: {axis}")
-    #print(f"回転角度 (度): {np.degrees(angle)}")
     return rotation
 
 
