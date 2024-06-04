@@ -12,18 +12,18 @@ light_direction:
 # STL rotation (x,y,z)
 # Angular velocity around rotation axis, degree/s
 angular_velocity:
-  - 10
-  - 5
-  - 5
+  - 0
+  - 12
+  - 0
 rotation_center:
   - 0
   - 0
   - 0
-rotation_axis:
+euler_angle_bodyaxis:
   - 0
-  - 1
   - 0
-#rotation_axis_order: xyz
+  - 0
+#rotation_order: xyz
 #rotation_bydegrees: True
 
 # Time marching
@@ -37,6 +37,9 @@ flag_shadow: True
 
 # Output data
 directory_output: result
+# --Initial STL data rotated by initial Euler angle
+flag_filename_initial_stl: True
+filename_initial_stl: initial_model.stl
 # --Series data
 flag_filename_vtk_series: True
 filename_vtk_series: shiroyagi_rotated.vtu

@@ -8,7 +8,7 @@ from vtk.util import numpy_support
 
 def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     
-  print('Ray tracing routine')
+  print('Ray tracing routine started')
   
   # Find index for probe
   probe = config['probe']
@@ -19,58 +19,58 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
   # Define light direction
   light_direction = np.array( config['light_direction'] )
 
+  # Light direction normalized (emitted from vertex) for shadow calculation
+  shadow_ray = -light_direction / np.linalg.norm(light_direction)
+
   # Define rotation angular (e.g., [1, 1, 1] degrees for x, y, z axes)
-  angular_velocity = np.array( config['angular_velocity'] )
-  if np.all(angular_velocity == 0): # All components of angular velocity are zero
-    flag_rotation = False    # Non rotation case
-  else:
-    flag_rotation = True     # Rotation case
+  angular_velocity = np.array( config['angular_velocity'] ).astype(float)
 
   # Define rotation center
   rotation_center = np.array(config['rotation_center'])
 
-  # Define rotation axis (normalized here)
-  rotation_axis = np.array( config['rotation_axis'] )
-  if np.all(rotation_axis == 0):
-    rotation_axis = np.array([1,0,0])
-    print('Axis of rotation is not defined. The X-around axis is automatically set.')
-  else:
-    rotation_axis = rotation_axis/np.linalg.norm(rotation_axis)
+  # Define rotation axis
+  euler_angle = np.array( config['euler_angle_bodyaxis'] ).astype(float)
+  rotation_obeject = mesh_stl.get_rotation_object_from_euler_angle(euler_angle)
+  #rotation_axis = mesh_stl.get_facing_axis_after_rotation(rotation_obeject)]
+  _, x_axis, _ = mesh_stl.get_euler_and_axis_from_rotaion_object(rotation_obeject)
+  rotation_axis = np.array( [x_axis, np.array([0.0,1.0,0.0]), np.array([0.0,0.0,1.0]) ])
 
   # Number of steps
-  if flag_rotation :
-    num_step = config['number_step']
-    if num_step <= 0:
-      print('Error, number of steps is less than zero.', num_step)
-      exit()
-    quaternion = mesh_stl.get_quaternion(rotation_axis, angular_velocity)
-    r = mesh_stl.get_rotation_quaternion(quaternion)
-    quaternion_combined = r.as_quat()
-    euler_angle, axis, angle = mesh_stl.quaternion_to_euler_and_axis(quaternion_combined)
-    rotation_period = mesh_stl.get_rotation_period( euler_angle )
-    time_step = rotation_period/float(num_step)
-    print('Euler angle, degree:', euler_angle)
-    print('Angle, degree:', angle)
-    print('Rotation axis:', axis)
-  else:
+  num_step = config['number_step']
+  if num_step <= 0:
+    print('Error, number of steps is less than zero.', num_step)
+    exit()
+
+  # Time step
+  if np.all(angular_velocity == 0): 
+    # Non-Rotation case
     num_step = 1
     time_step = 1.0 
-  print('Number of steps:',num_step)
-  print('Time steps:',time_step)
+  else: 
+    # Rotation case
+    quaternion_local = mesh_stl.get_quaternion_combined(rotation_axis, angular_velocity)
+    rotation_obeject = mesh_stl.get_rotation_object_from_quaternion(quaternion_local)
+    angular_velocity_tmp, axis_tmp, angle_tmp = mesh_stl.get_euler_and_axis_from_rotaion_object(rotation_obeject)
+    rotation_period = mesh_stl.get_rotation_period( angular_velocity_tmp )
+    time_step = rotation_period/float(num_step)
+    print('Euler angle per second, degree/s:', angular_velocity_tmp)
+    print('Angle, degree:', angle_tmp)
+    print('Rotation axis:', axis_tmp)
+  print('Time step, s:', time_step)
 
-  # Test rotation
-  #stl_data = mesh_stl.rotate_stl_quaternion(stl_data, rotation_center, rotation_axis, angular_velocity)
-  #stl_data.save('test.stl')
+  # Initial rotation of STL data
+  #stl_data = mesh_stl.rotate_stl_quaternion(stl_data, rotation_center, rotation_axis, euler_angle)
+  #if config['flag_filename_initial_stl']:
+  #  filename_output = config['directory_output'] + '/' + config['filename_initial_stl']
+  #  print('--Output STL data rotated by initial Euler angle',filename_output)
+  #  mesh_stl.save_stl(stl_data, filename_output)
 
   # Calculate the rotation per step
   rotation_per_step = angular_velocity*time_step
-  print('Rotation per step:', rotation_per_step)
+  #print('Rotation per step:', rotation_per_step)
 
   # Create a copy of the mesh to rotate
   rotated_mesh = mesh_stl.copy_mesh(stl_data)
-
-  # Light direction normalized (emitted from vertex) for shadow calculation
-  shadow_ray = -light_direction / np.linalg.norm(light_direction)
 
   num_normals = len(stl_data.normals)
   brightness = np.ones( num_normals )
@@ -83,7 +83,8 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     start_time = time.time()
 
     # Rotation
-    rotated_mesh = mesh_stl.rotate_stl_quaternion(rotated_mesh, rotation_center, rotation_axis, rotation_per_step)
+    quaternion = mesh_stl.get_quaternion_combined(rotation_axis, rotation_per_step)
+    rotated_mesh = mesh_stl.rotate_stl_quaternion(rotated_mesh, rotation_center, quaternion)
 
     if config['flag_shade']:
       # Ray tracing to evaluate incidence angle (rad)
@@ -149,6 +150,8 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
 
     # Output probe data
     write_probe_data(config, num_step, time_step, probe, probe_data)
+
+  print('Ray tracing routine finished')
 
   return 
 
