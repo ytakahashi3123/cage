@@ -12,9 +12,11 @@ class Mesh_stl():
     return
 
   def load_stl(self,filename):
+    print('Loading STL file:', filename)
     return mesh.Mesh.from_file(filename)
 
   def save_stl(self, stl_data, filename='initial_data.stl'):
+    print('Saving STL file:', filename)
     stl_data.save(filename)
     return 
 
@@ -34,8 +36,8 @@ class Mesh_stl():
     # 角速度ベクトルの大きさを計算
     magnitude = np.linalg.norm(angular_velocity)
     # 1周分の時間を計算
-    rotation_period = 360.0 / magnitude
-    print('Rotation period [s]:', rotation_period )    
+    rotation_period = 360.0 /magnitude
+    print('Rotation period [s]:', rotation_period )
     return rotation_period
 
   def get_index_stldata(self, stl_data, target_points):
@@ -55,31 +57,18 @@ class Mesh_stl():
     rotation_matrix = r.as_matrix()
     return rotation_matrix 
 
-  def rotate_stl_rotation_matrix(self, rotation_data, rotation_center, rotation_angle):
-    # Translate to rotation center
-    rotation_data.translate(-rotation_center)
-    # Rotation
-    rotation_matrix = self.get_rotation_matrix(rotation_angle, order='xyz', bydegrees=True)
-    # --Apply the rotation to each vertex in the mesh
-    rotation_data.vectors = np.dot(rotation_data.vectors, rotation_matrix.T)
-    # --Apply the rotation to each normal vectors in the mesh
-    rotation_data.normals = np.dot(rotation_data.normals, rotation_matrix.T)
-    # Translate from rotation center
-    rotation_data.translate(rotation_center)
-    return rotation_data
+  def get_quaternion(self, rotation_axis, rotation_angle):
+    # Quaternion
+    unit_vector = rotation_axis
+    theta = (rotation_angle * np.pi/180.0) /2.0
+    sin_theta = np.sin(theta).reshape(-1, 1)
+    cos_theta = np.cos(theta).reshape(-1, 1)
+    sin_components = unit_vector * sin_theta
+    quaternion = np.hstack((sin_components, cos_theta))
+    return quaternion
 
   def get_quaternion_combined(self, rotation_axis, rotation_angle):
     # Quaternion
-    #unit_vector_x = rotation_axis
-    #unit_vector_y = np.array( [0.0,1.0,0.0] )
-    #unit_vector_z = np.array( [0.0,0.0,1.0] )
-    #unit_vector_x = rotation_axis[0]
-    #unit_vector_y = rotation_axis[1]
-    #unit_vector_z = rotation_axis[2]
-    #quaternion_x = np.append( unit_vector[0]*np.sin(theta[0]), np.cos(theta[0]) )
-    #quaternion_y = np.append( unit_vector[1]*np.sin(theta[1]), np.cos(theta[1]) )
-    #quaternion_z = np.append( unit_vector[2]*np.sin(theta[2]), np.cos(theta[2]) )
-    #quaternion = [quaternion_x, quaternion_y, quaternion_z]
     unit_vector = rotation_axis
     theta = (rotation_angle * np.pi/180.0) /2.0
     sin_theta = np.sin(theta).reshape(-1, 1)
@@ -89,42 +78,68 @@ class Mesh_stl():
     return quaternion
 
   def get_rotation_object_from_quaternion(self, quaternion):
-    # Rotation module based on Quaternion, Order in intrinsic: "xyz"
-    # (座標系の回転だとrot_z * rot_y * rot_xになるはず?オブジェクトの回転はそのままrot_x * rot_y * rot_z)
-    rot_x = R.from_quat(quaternion[0])
-    rot_y = R.from_quat(quaternion[1])
-    rot_z = R.from_quat(quaternion[2])
-    rotation = rot_x * rot_y * rot_z
-    return rotation
+    return R.from_quat(quaternion)
 
-  def rotate_stl_quaternion(self, rotation_data, rotation_center, quaternion):
-    # Rotation object based on quaternion
-    rotation_object = self.get_rotation_object_from_quaternion(quaternion)
-    # Translate to rotation center
-    rotation_data.translate(-rotation_center)
-    # Rotation
-    rotation_data.vectors = rotation_object.apply( rotation_data.vectors.reshape(-1, 3) ).reshape(-1, 3, 3)
-    rotation_data.normals = rotation_object.apply( rotation_data.normals )
-    # Translate from rotation center
-    rotation_data.translate(rotation_center)
-    return rotation_data
-
-  def rotate_stl_euler_angle(self, rotation_data, rotation_center, euler_angle, order='xyz', degrees=True):
-    # オイラー角から回転オブジェクトを計算
-    rotation_object = self.get_rotation_object_from_euler_angle(euler_angle)
-    # Translate to rotation center
-    rotation_data.translate(-rotation_center)
-    # 回転を適用
-    rotation_data.vectors = rotation_object.apply( rotation_data.vectors.reshape(-1, 3) ).reshape(-1, 3, 3)
-    rotation_data.normals = rotation_object.apply( rotation_data.normals )
-    # Translate from rotation center
-    rotation_data.translate(rotation_center)
-    return rotation_data
+#  def get_rotation_object_from_quaternion_combined(self, quaternion):
+#    # Rotation module based on Quaternion, Order in intrinsic: "xyz"
+#    # (座標系の回転だとrot_z * rot_y * rot_xになるはず?オブジェクトの回転はそのままrot_x * rot_y * rot_z)
+#    rot_x = R.from_quat(quaternion[0])
+#    rot_y = R.from_quat(quaternion[1])
+#    rot_z = R.from_quat(quaternion[2])
+#    rotation = rot_x * rot_y * rot_z
+#    return rotation
 
   def get_rotation_object_from_euler_angle(self ,euler_angle, order='xyz', degrees=True):
     # オイラー角から回転オブジェクトを計算
     rotation = R.from_euler('xyz', euler_angle, degrees=degrees)
     return rotation
+
+  def rotate_stl(self, rotated_stl_data, rotation_center, rotation_object):
+    # Translate to rotation center
+    rotated_stl_data.translate(-rotation_center)
+    # Rotation
+    rotated_stl_data.vectors = rotation_object.apply( rotated_stl_data.vectors.reshape(-1, 3) ).reshape(-1, 3, 3)
+    rotated_stl_data.normals = rotation_object.apply( rotated_stl_data.normals )
+    # Translate from rotation center
+    rotated_stl_data.translate(rotation_center)
+    return rotated_stl_data
+
+#  def rotate_stl_quaternion(self, rotation_data, rotation_center, quaternion):
+#    # Rotation object based on quaternion
+#    rotation_object = self.get_rotation_object_from_quaternion(quaternion)
+#    # Translate to rotation center
+#    rotation_data.translate(-rotation_center)
+#    # Rotation
+#    rotation_data.vectors = rotation_object.apply( rotation_data.vectors.reshape(-1, 3) ).reshape(-1, 3, 3)
+#    rotation_data.normals = rotation_object.apply( rotation_data.normals )
+#    # Translate from rotation center
+#    rotation_data.translate(rotation_center)
+#    return rotation_data
+
+#  def rotate_stl_euler_angle(self, rotation_data, rotation_center, euler_angle, order='xyz', degrees=True):
+#    # オイラー角から回転オブジェクトを計算
+#    rotation_object = self.get_rotation_object_from_euler_angle(euler_angle)
+#    # Translate to rotation center
+#    rotation_data.translate(-rotation_center)
+#    # 回転を適用
+#    rotation_data.vectors = rotation_object.apply( rotation_data.vectors.reshape(-1, 3) ).reshape(-1, 3, 3)
+#    rotation_data.normals = rotation_object.apply( rotation_data.normals )
+#    # Translate from rotation center
+#    rotation_data.translate(rotation_center)
+#    return rotation_data#
+
+#  def rotate_stl_rotation_matrix(self, rotation_data, rotation_center, rotation_angle):
+#    # Translate to rotation center
+#    rotation_data.translate(-rotation_center)
+#    # Rotation
+#    rotation_matrix = self.get_rotation_matrix(rotation_angle, order='xyz', bydegrees=True)
+#    # --Apply the rotation to each vertex in the mesh
+#    rotation_data.vectors = np.dot(rotation_data.vectors, rotation_matrix.T)
+#    # --Apply the rotation to each normal vectors in the mesh
+#    rotation_data.normals = np.dot(rotation_data.normals, rotation_matrix.T)
+#    # Translate from rotation center
+#    rotation_data.translate(rotation_center)
+#    return rotation_data
 
   def extract_rotation_axis(self, rotation):
     # 回転クォータニオンを抽出
@@ -132,7 +147,7 @@ class Mesh_stl():
     # 回転軸を計算 (q = [x, y, z, w] の形式)
     axis = quat[:3]
     # 回転軸ベクトルを正規化
-    normalized_axis = normalize(axis)    
+    normalized_axis = axis #normalize(axis)    
     return normalized_axis
 
   def get_facing_axis_after_rotation(self,rotation):
@@ -154,6 +169,15 @@ class Mesh_stl():
 
     # オイラー角を計算
     euler_angle = rotation.as_euler(order, degrees=True)
+
+    #quaternion = rotation.as_quat()
+    #x, y, z, w = quaternion
+    ## 回転角度を計算
+    ## 2 * arccos(w) により回転角度を得る（ラジアン）
+    #angle_rad = 2 * np.arccos(w)
+    ## 角度を度に変換
+    #angle_deg_q = np.degrees(angle_rad)
+
     # 回転軸と回転角度を計算
     angle = rotation.magnitude()
     angle_deg = np.degrees( angle )
@@ -162,4 +186,15 @@ class Mesh_stl():
     else : 
       axis = np.array([1, 0, 0])
 
+    #print(angle_deg,angle_deg_q)
+
     return euler_angle, axis, angle_deg
+
+
+  def get_unitvector_from_polar_angle(self, polar_angle):
+    theta = np.deg2rad( polar_angle[0] )
+    phi   = np.deg2rad( polar_angle[1] )
+    unit_x = np.sin( theta ) * np.cos( phi )
+    unit_y = np.sin( theta ) * np.sin( phi )
+    unit_z = np.cos( theta )
+    return np.array( [unit_x, unit_y, unit_z] )

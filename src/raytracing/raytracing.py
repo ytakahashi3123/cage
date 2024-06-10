@@ -16,24 +16,31 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
   if probe is not None:
     probe_index_list = find_probe_index(probe,stl_data,mesh_stl)
 
-  # Define light direction
-  light_direction = np.array( config['light_direction'] )
-
-  # Light direction normalized (emitted from vertex) for shadow calculation
-  shadow_ray = -light_direction / np.linalg.norm(light_direction)
-
   # Define rotation angular (e.g., [1, 1, 1] degrees for x, y, z axes)
   angular_velocity = np.array( config['angular_velocity'] ).astype(float)
 
   # Define rotation center
-  rotation_center = np.array(config['rotation_center'])
+  rotation_center = np.array(config['rotation_center']).astype(float)
+
+  from scipy.spatial.transform import Rotation as R
+
+  # Define body axis
+  euler_angle_bodyaxis = np.array( config['euler_angle_bodyaxis'] ).astype(float)
+  rotation_object = mesh_stl.get_rotation_object_from_euler_angle(euler_angle_bodyaxis)
+  body_axis = mesh_stl.get_facing_axis_after_rotation(rotation_object)
+  print('Body axis:', body_axis)
+  # --Initial rotation of STL data
+  #quaternion = mesh_stl.get_quaternion_combined(body_axis, euler_angle_bodyaxis)
+  #stl_data = mesh_stl.rotate_stl_quaternion(stl_data, rotation_center, quaternion)
+  #if config['flag_filename_initial_stl']:
+  #  filename_output = config['directory_output'] + '/' + config['filename_initial_stl']
+  #  print('--Output STL data rotated by initial Euler angle',filename_output)
+  #  mesh_stl.save_stl(stl_data, filename_output)
 
   # Define rotation axis
-  euler_angle = np.array( config['euler_angle_bodyaxis'] ).astype(float)
-  rotation_obeject = mesh_stl.get_rotation_object_from_euler_angle(euler_angle)
-  #rotation_axis = mesh_stl.get_facing_axis_after_rotation(rotation_obeject)]
-  _, x_axis, _ = mesh_stl.get_euler_and_axis_from_rotaion_object(rotation_obeject)
-  rotation_axis = np.array( [x_axis, np.array([0.0,1.0,0.0]), np.array([0.0,0.0,1.0]) ])
+  polar_angle = np.array( config['polar_angle_rotaionaxis'] ).astype(float)
+  rotation_axis = mesh_stl.get_unitvector_from_polar_angle(polar_angle)
+  print('Rotation axis:', rotation_axis)
 
   # Number of steps
   num_step = config['number_step']
@@ -48,34 +55,33 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     time_step = 1.0 
   else: 
     # Rotation case
-    quaternion_local = mesh_stl.get_quaternion_combined(rotation_axis, angular_velocity)
-    rotation_obeject = mesh_stl.get_rotation_object_from_quaternion(quaternion_local)
-    angular_velocity_tmp, axis_tmp, angle_tmp = mesh_stl.get_euler_and_axis_from_rotaion_object(rotation_obeject)
-    rotation_period = mesh_stl.get_rotation_period( angular_velocity_tmp )
+    quaternion = mesh_stl.get_quaternion(rotation_axis, angular_velocity)
+    rotation_object = mesh_stl.get_rotation_object_from_quaternion(quaternion)
+    angular_velocity_tmp, axis_tmp, angle_tmp = mesh_stl.get_euler_and_axis_from_rotaion_object(rotation_object)
+    rotation_period = mesh_stl.get_rotation_period( angle_tmp )
     time_step = rotation_period/float(num_step)
     print('Euler angle per second, degree/s:', angular_velocity_tmp)
     print('Angle, degree:', angle_tmp)
     print('Rotation axis:', axis_tmp)
   print('Time step, s:', time_step)
 
-  # Initial rotation of STL data
-  #stl_data = mesh_stl.rotate_stl_quaternion(stl_data, rotation_center, rotation_axis, euler_angle)
-  #if config['flag_filename_initial_stl']:
-  #  filename_output = config['directory_output'] + '/' + config['filename_initial_stl']
-  #  print('--Output STL data rotated by initial Euler angle',filename_output)
-  #  mesh_stl.save_stl(stl_data, filename_output)
-
   # Calculate the rotation per step
   rotation_per_step = angular_velocity*time_step
-  #print('Rotation per step:', rotation_per_step)
+  print('Rotation per step:', rotation_per_step)
 
   # Create a copy of the mesh to rotate
   rotated_mesh = mesh_stl.copy_mesh(stl_data)
 
+  # Define light direction
+  light_direction = np.array( config['light_direction'] )
+
+  # Light direction normalized (emitted from vertex) for shadow calculation
+  shadow_ray = -light_direction / np.linalg.norm(light_direction)
+
+  # Initial settings
   num_normals = len(stl_data.normals)
   brightness = np.ones( num_normals )
   brightness_ave = np.zeros( num_normals )
-
   num_probes = num_probes + 1
   probe_data = np.zeros(num_step*num_probes).reshape(num_step,num_probes)
 
@@ -84,7 +90,8 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
 
     # Rotation
     quaternion = mesh_stl.get_quaternion_combined(rotation_axis, rotation_per_step)
-    rotated_mesh = mesh_stl.rotate_stl_quaternion(rotated_mesh, rotation_center, quaternion)
+    rotation_object = mesh_stl.get_rotation_object_from_quaternion(quaternion)
+    rotated_mesh = mesh_stl.rotate_stl(rotated_mesh, rotation_center, rotation_object)
 
     if config['flag_shade']:
       # Ray tracing to evaluate incidence angle (rad)
@@ -132,7 +139,7 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     # Elapsed time
     elapsed_time = time.time()-start_time
     if config['display_verbose']:
-      print('Elapsed time [s]',elapsed_time)
+      print('--Elapsed time [s]',elapsed_time)
 
   # Output average data
   if config['flag_filename_vtk_ave'] :
@@ -146,7 +153,7 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     for m in range(0,len(probe)):
       triangle_index = probe_index_list[m][0]
       probe_data[-1,m] = brightness_ave[triangle_index]
-      print('--Probe',m, probe[m]['name'],'Brightness',probe_data[-1,m])
+      print('Probe',m, probe[m]['name'],'Brightness',probe_data[-1,m])
 
     # Output probe data
     write_probe_data(config, num_step, time_step, probe, probe_data)
@@ -158,7 +165,7 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
 
 def output_vtk(filename_output, stl_data, variable_name, variable_data):
 
-  print('Writing brightness on STL to:',filename_output)
+#  print('Writing brightness on STL to:',filename_output)
 
   # 三角形要素の数を取得
   num_triangles = len(stl_data.vectors)

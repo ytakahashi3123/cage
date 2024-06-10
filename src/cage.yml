@@ -10,19 +10,20 @@ light_direction:
   - -1
 
 # STL rotation (x,y,z)
-# Angular velocity around rotation axis, degree/s
-angular_velocity:
-  - 10
-  - 5
-  - 5
 rotation_center:
   - 0
   - 0
   - 0
-euler_angle_bodyaxis:
+euler_angle_bodyaxis: # not used here, order:xyz: x-axis->[0,360], y-axis->[0,360], z-axis->[0,90]
   - 0
-  - -45
+  - 0
+  - 0
+polar_angle_rotaionaxis: # Zenith and Azimuth angles (Radial distance r=1 fixed)
   - 45
+  - 45
+# Angular velocity around rotation axis, degree/s
+angular_velocity:
+  - 12
 #rotation_order: xyz
 #rotation_bydegrees: True
 
@@ -38,8 +39,8 @@ flag_shadow: False
 # Output data
 directory_output: result
 # --Initial STL data rotated by initial Euler angle
-flag_filename_initial_stl: True
-filename_initial_stl: initial_model.stl
+#flag_filename_initial_stl: True
+#filename_initial_stl: initial_model.stl
 # --Series data
 flag_filename_vtk_series: True
 filename_vtk_series: goat_rotated.vtu
