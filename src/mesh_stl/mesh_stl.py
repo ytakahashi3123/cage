@@ -35,9 +35,8 @@ class Mesh_stl():
     # "angular_velocity": degree/s
     # 角速度ベクトルの大きさを計算
     magnitude = np.linalg.norm(angular_velocity)
-    # 1周分の時間を計算
+    # 1周分の時間を計算1
     rotation_period = 360.0 /magnitude
-    print('Rotation period [s]:', rotation_period )
     return rotation_period
 
   def get_index_stldata(self, stl_data, target_points):

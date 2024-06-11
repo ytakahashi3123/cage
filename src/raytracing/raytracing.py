@@ -22,14 +22,16 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
   # Define rotation center
   rotation_center = np.array(config['rotation_center']).astype(float)
 
-  from scipy.spatial.transform import Rotation as R
-
   # Define body axis
   euler_angle_bodyaxis = np.array( config['euler_angle_bodyaxis'] ).astype(float)
   rotation_object = mesh_stl.get_rotation_object_from_euler_angle(euler_angle_bodyaxis)
   body_axis = mesh_stl.get_facing_axis_after_rotation(rotation_object)
-  print('Body axis:', body_axis)
-  # --Initial rotation of STL data
+  print('Body axis:')
+  print('--x:', body_axis[0])
+  print('--y:', body_axis[1])
+  print('--z:', body_axis[2])
+
+  # Initial rotation of STL data
   #quaternion = mesh_stl.get_quaternion_combined(body_axis, euler_angle_bodyaxis)
   #stl_data = mesh_stl.rotate_stl_quaternion(stl_data, rotation_center, quaternion)
   #if config['flag_filename_initial_stl']:
@@ -55,14 +57,17 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     time_step = 1.0 
   else: 
     # Rotation case
-    quaternion = mesh_stl.get_quaternion(rotation_axis, angular_velocity)
+    rotation_period = mesh_stl.get_rotation_period( angular_velocity )
+    print('Rotation period, s:', rotation_period )
+    time_step = rotation_period/float(num_step)
+
+    quaternion = mesh_stl.get_quaternion(rotation_axis, angular_velocity*time_step)
     rotation_object = mesh_stl.get_rotation_object_from_quaternion(quaternion)
     angular_velocity_tmp, axis_tmp, angle_tmp = mesh_stl.get_euler_and_axis_from_rotaion_object(rotation_object)
-    rotation_period = mesh_stl.get_rotation_period( angle_tmp )
-    time_step = rotation_period/float(num_step)
     print('Euler angle per second, degree/s:', angular_velocity_tmp)
     print('Angle, degree:', angle_tmp)
     print('Rotation axis:', axis_tmp)
+
   print('Time step, s:', time_step)
 
   # Calculate the rotation per step
