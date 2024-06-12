@@ -88,9 +88,10 @@ class Mesh_stl():
 #    rotation = rot_x * rot_y * rot_z
 #    return rotation
 
-  def get_rotation_object_from_euler_angle(self ,euler_angle, order='xyz', degrees=True):
+  def get_rotation_object_from_euler_angle(self ,euler_angle, order='XYZ', degrees=True):
     # オイラー角から回転オブジェクトを計算
-    rotation = R.from_euler('xyz', euler_angle, degrees=degrees)
+    # 'XYZ': Captal letter: intrinsic
+    rotation = R.from_euler(order, euler_angle, degrees=degrees)
     return rotation
 
   def rotate_stl(self, rotated_stl_data, rotation_center, rotation_object):
@@ -156,7 +157,7 @@ class Mesh_stl():
     rotated_axes = rotation.apply(initial_axes)
     return rotated_axes
 
-  def get_euler_and_axis_from_rotaion_object(self, rotation, order='xyz'):
+  def get_euler_and_axis_from_rotaion_object(self, rotation, order='XYZ'):
     # 回転オブジェクトからオイラー角と回転軸を求める
     #Input parameters:
     #- rotation

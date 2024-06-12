@@ -24,7 +24,7 @@ class Shadow:
     return min_corner, max_corner
 
 
-  def build_bvh(self, triangles, triangle_indices, depth=0, max_depth=15):
+  def build_bvh(self, triangles, triangle_indices, depth=0, max_depth=20):
     if len(triangles) == 0:
       return None
 
@@ -101,11 +101,11 @@ class Shadow:
 
 
   def ray_intersects_aabb(self, ray_origin, ray_direction, aabb_min, aabb_max):
-    #eps_tmp = np.array([1.e-30,1.e-30,1.e-30])
-    #tmin = (aabb_min - ray_origin) / (ray_direction+eps_tmp)
-    #tmax = (aabb_max - ray_origin) / (ray_direction+eps_tmp)
-    tmin = (aabb_min - ray_origin) / (ray_direction)
-    tmax = (aabb_max - ray_origin) / (ray_direction)
+    eps_tmp = np.array([1.e-30,1.e-30,1.e-30])
+    tmin = (aabb_min - ray_origin) / (ray_direction+eps_tmp)
+    tmax = (aabb_max - ray_origin) / (ray_direction+eps_tmp)
+    #tmin = (aabb_min - ray_origin) / (ray_direction)
+    #tmax = (aabb_max - ray_origin) / (ray_direction)
     tmin_final = np.max(np.minimum(tmin, tmax))
     tmax_final = np.min(np.maximum(tmin, tmax))
     return tmax_final >= max(tmin_final, 0.0)

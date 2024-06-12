@@ -4,10 +4,13 @@
 filename_input_stl: "goat-3d-model/Goat.stl"
 
 # Light source (x,y,z)
-light_direction: 
-  - 0
-  - 0
-  - -1
+light_source:
+  - name: sun
+    intensity: 1.0
+    component:
+    - 0
+    - 0
+    - -1
 
 # STL rotation (x,y,z)
 rotation_center:
@@ -24,7 +27,7 @@ polar_angle_rotaionaxis: # Zenith and Azimuth angles (Radial distance r=1 fixed)
 # Angular velocity around rotation axis, degree/s
 angular_velocity:
   - 12
-#rotation_order: xyz
+#rotation_order: XYZ
 #rotation_bydegrees: True
 
 # Time marching
@@ -35,12 +38,14 @@ flag_shade: True
 
 # Shadow computing
 flag_shadow: False
+flag_shadow_calculation_onprobe: True
+depth_bvh: 10
 
 # Output data
 directory_output: result
 # --Initial STL data rotated by initial Euler angle
-#flag_filename_initial_stl: True
-#filename_initial_stl: initial_model.stl
+flag_filename_initial_stl: True
+filename_initial_stl: initial_model.stl
 # --Series data
 flag_filename_vtk_series: True
 filename_vtk_series: goat_rotated.vtu
@@ -53,6 +58,9 @@ flag_filename_vtk_ave: True
 filename_vtk_ave: goat_rotated_ave.vtu
 variable_name_ave: Brightness
 variable_scale_ave: 1.0
+# --Series data: rotation and body axes
+flag_filename_axis_series: False
+filename_axis_series: egg_rotaion_axis.vtu
 
 # Probe
 probe:
