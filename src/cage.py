@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 # Cage: Script to calculate brightness on STL surface using ray tracing method
-# Version 1.1.0
-# Date: 2024/06/30
+# Version 1.2.0
+# Date: 2024/07/31
 
 # Author: Yusuke Takahashi, Hokkaido University
 # Contact: ytakahashi@eng.hokudai.ac.jp
 
 code_name = "Cage"
-version = "1.1.0"
+version = "1.2.0"
 
 import numpy as np
 from orbital.orbital import Orbital

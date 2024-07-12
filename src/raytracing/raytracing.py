@@ -38,7 +38,7 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     mesh_stl.save_stl(stl_data, filename_output)
 
   # Define rotation axis
-  polar_angle = np.array( config['polar_angle_rotaionaxis'] ).astype(float)
+  polar_angle = np.array( config['polar_angle_rotationaxis'] ).astype(float)
   rotation_axis = mesh_stl.get_unitvector_from_polar_angle(polar_angle)
   print('Rotation axis:', rotation_axis)
 
@@ -52,7 +52,7 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
   if np.all(angular_velocity == 0): 
     # Non-Rotation case
     num_step = 1
-    time_step = 1.0 
+    time_step = 0.0 
   else: 
     # Rotation case
     rotation_period = mesh_stl.get_rotation_period( angular_velocity )
@@ -109,6 +109,13 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
     for m in range(0, num_light):
       # Intensity of light
       light_intensity = np.array( light_source[m]['intensity'] )
+      if light_source[m]['name'] == 'sun' :
+        light_intensity = light_intensity * config['absorption_solar']
+      elif light_source[m]['name'] == 'albedo':
+        light_intensity = light_intensity * config['absorption_solar']
+      elif light_source[m]['name'] == 'earth':
+        light_intensity = light_intensity * config['emissivity']
+
       # Light direction normalized (emitted from vertex) for shadow calculation
       light_direction = np.array( light_source[m]['component'] )
       shadow_ray = -light_direction / np.linalg.norm(light_direction)
@@ -175,11 +182,23 @@ def run_raytracing(config,stl_data,orbital,mesh_stl,shade,shadow):
         triangle_index = probe_index_list[m][0]
         probe_data[n,m] = brightness[triangle_index]
         print('--Probe',m, probe[m]['name'],'Brightness',probe_data[n,m])
+    # Body axis data
+    if config['flag_filename_axis_series']:
+      quaternion_tmp = mesh_stl.get_quaternion_combined(rotation_axis, rotation_per_step*float(n+1))
+      rotation_object_tmp = mesh_stl.get_rotation_object_from_quaternion(quaternion_tmp)
+      rotated_body_axis = mesh_stl.get_facing_axis_after_rotation(rotation_object_tmp)
+      #print('--x:', rotated_body_axis[0])
+      #print('--y:', rotated_body_axis[1])
+      #print('--z:', rotated_body_axis[2])
+      filename_output = config['directory_output'] + '/' + orbital.insert_suffix(config['filename_axis_series'],'_'+str(n).zfill(config['step_digit']),'.')
+      print('--Output body axis',n,filename_output)
+      write_body_axis_data(filename_output, rotation_center, rotated_body_axis)
 
     # Elapsed time
     elapsed_time = time.time()-start_time
     if config['display_verbose']:
       print('--Elapsed time [s]',elapsed_time)
+
 
   # Output average data
   if config['flag_filename_vtk_ave'] :
@@ -297,4 +316,19 @@ def write_probe_data(config, num_step, time_step, probe, probe_data):
   file_output.write( text_tmp )
   file_output.close()
 
+  return
+
+
+def write_body_axis_data(filename_output, body_center, body_axis):
+  file_output = open( filename_output , 'w')
+  header_tmp = "Variables = x, y, z, nx, ny, nz" + '\n'
+  file_output.write( header_tmp )
+  text_tmp = ''
+  for n in range(0, 3):
+    text_tmp = str(body_center[0]) + ', ' + str(body_center[1]) + ', ' + str(body_center[2]) +  ', ' 
+    for m in range(0, 3):
+      text_tmp = text_tmp  + str( body_axis[n,m] ) + ', '
+    text_tmp = text_tmp.rstrip(', ')  + '\n'
+  file_output.write( text_tmp )
+  file_output.close()
   return

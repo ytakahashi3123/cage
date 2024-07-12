@@ -21,7 +21,7 @@ euler_angle_bodyaxis: # not used here, order:xyz: x-axis->[0,360], y-axis->[0,36
   - 0
   - 0
   - 0
-polar_angle_rotaionaxis: # Zenith and Azimuth angles (Radial distance r=1 fixed)
+polar_angle_rotationaxis: # Zenith and Azimuth angles (Radial distance r=1 fixed)
   - 45
   - 45
 # Angular velocity around rotation axis, degree/s
@@ -29,6 +29,10 @@ angular_velocity:
   - 12
 #rotation_order: XYZ
 #rotation_bydegrees: True
+
+# Surface properties
+solar_coefficient: 0.3
+emissivity: 0.9
 
 # Time marching
 number_step: 30
@@ -60,7 +64,7 @@ variable_name_ave: Brightness
 variable_scale_ave: 1.0
 # --Series data: rotation and body axes
 flag_filename_axis_series: False
-filename_axis_series: egg_rotaion_axis.vtu
+filename_axis_series: egg_rotaion_axis.dat
 
 # Probe
 probe:
